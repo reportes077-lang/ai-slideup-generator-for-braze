@@ -6,7 +6,7 @@ import firebaseConfig from '../firebase-applet-config.json';
 // Supply the Firebase web API key through a local .env.local file.
 const app = initializeApp({
   ...firebaseConfig,
-  apiKey: (import.meta as ImportMeta & { env: { VITE_FIREBASE_API_KEY?: string } }).env.VITE_FIREBASE_API_KEY || '',
+  apiKey: (import.meta as ImportMeta & { env: { VITE_FIREBASE_API_KEY?: string } }).env.VITE_FIREBASE_API_KEY || firebaseConfig.apiKey,
 });
 // Using the firestoreDatabaseId from the config as required by instructions
 export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId); 
