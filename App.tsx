@@ -1,5 +1,5 @@
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { generateGamerImage } from './services/geminiService';
 import { GifGenerationState, AspectRatio } from './types';
 import gifshot from 'gifshot';
@@ -13,29 +13,13 @@ import {
   BadgePercent,
   Download,
   Sun,
-  Moon,
-  LogIn,
-  LogOut,
-  User as UserIcon,
-  ShieldCheck
+  Moon
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { auth, db, OperationType, handleFirestoreError } from './services/firebase';
-import { 
-  onAuthStateChanged, 
-  signInWithPopup, 
-  GoogleAuthProvider, 
-  signOut,
-  User
-} from 'firebase/auth';
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
-
 const BEES_LOGO = "https://www.bees.com/themes/custom/abinbev_propel/bees-logo-black.svg";
 
 const App: React.FC = () => {
   const heroInputRef = useRef<HTMLInputElement>(null);
-  const [user, setUser] = useState<User | null>(null);
-  const [authLoading, setAuthLoading] = useState(true);
 
   const INITIAL_STATE: Omit<GifGenerationState, 'history' | 'isDarkMode'> = {
     isLoading: false,
@@ -65,48 +49,6 @@ const App: React.FC = () => {
     isDarkMode: true,
     history: []
   });
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (u) => {
-      setUser(u);
-      setAuthLoading(false);
-      
-      if (u) {
-        // Sync user to Firestore
-        try {
-          const userRef = doc(db, 'users', u.uid);
-          await setDoc(userRef, {
-            uid: u.uid,
-            email: u.email,
-            displayName: u.displayName,
-            photoURL: u.photoURL,
-            lastLogin: serverTimestamp()
-          }, { merge: true });
-        } catch (error) {
-          console.error("Error syncing user:", error);
-          // We don't block the app if sync fails, but we log it
-        }
-      }
-    });
-    return () => unsubscribe();
-  }, []);
-
-  const handleLogin = async () => {
-    const provider = new GoogleAuthProvider();
-    try {
-      await signInWithPopup(auth, provider);
-    } catch (error) {
-      console.error("Login Error:", error);
-    }
-  };
-
-  const handleLogout = async () => {
-    try {
-      await signOut(auth);
-    } catch (error) {
-      console.error("Logout Error:", error);
-    }
-  };
 
   const previewCanvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -464,29 +406,6 @@ const App: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-4">
-          {user && (
-            <div className="flex items-center gap-3 pr-2 mr-2 border-r border-neutral-700/50">
-              <div className="text-right hidden sm:block">
-                <p className={`text-[10px] font-bold leading-tight ${gifState.isDarkMode ? 'text-white' : 'text-neutral-900'}`}>{user.displayName}</p>
-                <p className="text-[9px] text-neutral-500 font-medium">Bavaria Col</p>
-              </div>
-              {user.photoURL ? (
-                <img src={user.photoURL} alt={user.displayName || ""} className="w-8 h-8 rounded-full border border-amber-500/30" />
-              ) : (
-                <div className="w-8 h-8 rounded-full bg-neutral-800 flex items-center justify-center border border-amber-500/30">
-                  <UserIcon className="w-4 h-4 text-amber-500" />
-                </div>
-              )}
-              <button 
-                onClick={handleLogout}
-                className={`p-2 rounded-lg transition-colors ${gifState.isDarkMode ? 'hover:bg-neutral-800 text-neutral-400' : 'hover:bg-neutral-100 text-neutral-500'}`}
-                title="Cerrar sesión"
-              >
-                <LogOut className="w-4 h-4" />
-              </button>
-            </div>
-          )}
-
           <button 
             onClick={resetApp}
             className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${gifState.isDarkMode ? 'bg-amber-500 text-black hover:bg-amber-400 shadow-[0_0_20px_rgba(245,158,11,0.1)]' : 'bg-neutral-900 text-white hover:bg-black shadow-lg'}`}
@@ -510,35 +429,6 @@ const App: React.FC = () => {
       </header>
 
       <div className="max-w-6xl mx-auto px-4 py-8 md:py-12">
-        {authLoading ? (
-          <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
-             <div className="w-12 h-12 border-2 border-amber-500/10 border-t-amber-500 rounded-full animate-spin" />
-             <p className="text-[10px] font-black uppercase tracking-[0.3em] text-neutral-500">Checking Access</p>
-          </div>
-        ) : !user ? (
-          <div className="flex flex-col items-center justify-center min-h-[60vh] max-w-md mx-auto text-center space-y-8 animate-in fade-in zoom-in duration-500">
-            <div className={`p-10 rounded-[3rem] border transition-all ${gifState.isDarkMode ? 'bg-neutral-900 border-neutral-800' : 'bg-white border-neutral-100 shadow-2xl'}`}>
-              <div className="w-20 h-20 bg-amber-500 rounded-3xl mx-auto mb-8 flex items-center justify-center shadow-[0_20px_50px_rgba(245,158,11,0.2)]">
-                <ShieldCheck className="w-10 h-10 text-black" />
-              </div>
-              <h2 className={`text-3xl font-black tracking-tighter mb-2 ${gifState.isDarkMode ? 'text-white' : 'text-neutral-900'}`}>
-                SlideUp<span className="text-amber-500">Generator</span>
-              </h2>
-              <p className="text-neutral-500 text-xs font-bold uppercase tracking-widest mb-10 leading-relaxed">
-                Herramienta Exclusiva Bavaria <br/>
-                <span className="text-[9px] opacity-50">BEES Platform Edition</span>
-              </p>
-              <button 
-                onClick={handleLogin}
-                className="w-full flex items-center justify-center gap-3 bg-neutral-950 text-white hover:bg-black py-4 rounded-2xl font-black uppercase tracking-widest transition-all shadow-xl active:scale-95 group"
-              >
-                <LogIn className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                Ingresar con Google
-              </button>
-            </div>
-          </div>
-        ) : (
-          <>
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
           
           {/* Controls */}
@@ -886,8 +776,6 @@ const App: React.FC = () => {
             Standard: 150x150px • 1.0s Loop • {gifState.bgColor}
           </p>
         </footer>
-        </>
-        )}
       </div>
     </div>
   );
